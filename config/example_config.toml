@@ -1,0 +1,13 @@
+# Number of items to show in the TUI.
+# Set to -1 to auto-detect based on terminal height.
+max_items = 8
+
+# Enable logging
+log = false
+
+[colors]
+title = "214"     # orange
+prompt = "45"     # blue
+item = "252"      # gray
+selected = "54"   # teal background
+help = "240"      # dim gray
