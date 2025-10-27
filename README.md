@@ -63,16 +63,16 @@ ls /usr/bin | greg -m dmenu
 `greg` supports a TOML configuration file at:
 
 ```
-$XDG_CONFIG_HOME/greg/.config
+$XDG_CONFIG_HOME/greg/config.toml
 ```
 
 or
 
 ```
-~/.config/greg/.config
+~/.config/greg/config.toml
 ```
 
-### Example `~/.config/greg/.config`
+### Example `~/.config/greg/config.toml`
 
 ```toml
 # Number of items to show. Set -1 to auto-detect terminal height.

@@ -123,7 +123,10 @@ func getMaxItems(cfg *Config) int {
 	height, _, err := term.GetSize(int(os.Stdin.Fd()))
 	if err != nil || height < 5 {
 		// Fallback if detection fails
-		return 10
+		if cfg.Log {
+			fmt.Printf("[DEBUG] Failed to get terminal size, using default max items 10: %v\n", err)
+		}
+		return cfg.DefaultMaxItems
 	}
 
 	// Reserve lines for header, prompt, margins, etc.

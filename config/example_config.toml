@@ -1,13 +1,17 @@
 # Number of items to show in the TUI.
 # Set to -1 to auto-detect based on terminal height.
-max_items = 8
+max_items = -1
 
-# Enable logging
+# If max_items is set to -1, and the terminal height cannot be detected,
+# fallback to this value.
+default_max = 10
+
+# Enable debug logging
 log = false
 
 [colors]
-title = "214"     # orange
-prompt = "45"     # blue
-item = "252"      # gray
-selected = "54"   # teal background
-help = "240"      # dim gray
+title = "71"     # jade green (border)
+prompt = "79"    # seafoam jade (selected-text accent)
+item = "194"     # soft jade-tinted white (text)
+selected = "235" # deep jade-black (background highlight)
+help = "240"     # muted gray

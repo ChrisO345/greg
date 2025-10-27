@@ -10,8 +10,9 @@ import (
 
 // Config represents user preferences read from TOML
 type Config struct {
-	MaxItems int  `toml:"max_items"`
-	Log      bool `toml:"log"`
+	MaxItems        int  `toml:"max_items"`
+	DefaultMaxItems int  `toml:"default_max"`
+	Log             bool `toml:"log"`
 
 	Colors struct {
 		Title    string `toml:"title"`
@@ -22,7 +23,7 @@ type Config struct {
 	} `toml:"colors"`
 }
 
-// LoadConfig loads greg configuration from $XDG_CONFIG_HOME/greg/.config
+// LoadConfig loads greg configuration from $XDG_CONFIG_HOME/greg/config.toml
 func LoadConfig() (*Config, error) {
 	config := &Config{}
 
@@ -36,10 +37,13 @@ func LoadConfig() (*Config, error) {
 		xdgHome = filepath.Join(home, ".config")
 	}
 
-	configPath := filepath.Join(xdgHome, "greg", ".config")
+	configPath := filepath.Join(xdgHome, "greg", "config.toml")
+
+	fmt.Printf("[DEBUG] Loading config from %s\n", configPath)
 
 	// If the file doesn’t exist, return defaults
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
+		fmt.Printf("[INFO] Config file not found at %s, using default settings.\n", configPath)
 		return defaultConfig(), nil
 	}
 
@@ -54,7 +58,8 @@ func LoadConfig() (*Config, error) {
 // defaultConfig returns fallback settings
 func defaultConfig() *Config {
 	cfg := &Config{}
-	cfg.MaxItems = 0
+	cfg.MaxItems = -1
+	cfg.DefaultMaxItems = 10
 
 	// Jade-inspired default colors
 	cfg.Colors.Title = "71"     // jade green (border)
