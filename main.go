@@ -71,7 +71,9 @@ func main() {
 	if cfg.Log {
 		fmt.Printf("[DEBUG] Total apps loaded: %d\n", len(appEntries))
 	}
-	if err := RunTUIWithItems(cfg, args.Mode.Value, items, appEntries); err != nil {
+
+	mode := initialModelWithItems(cfg, args, items)
+	if err := RunTUIWithItems(cfg, mode, items, appEntries); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}

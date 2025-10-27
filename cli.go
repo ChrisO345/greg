@@ -17,6 +17,21 @@ type CLIArgs struct {
 		Value             string
 		clifford.Clifford `short:"m" long:"mode" desc:"Set the mode of operation (e.g., 'dmenu', 'apps')"`
 	}
+
+	Prompt struct {
+		Value             string
+		clifford.Clifford `short:"p" long:"prompt" desc:"Set the prompt text in the TUI"`
+	}
+
+	Out struct {
+		Value             string
+		clifford.Clifford `short:"o" long:"out" desc:"Write selection to specified file instead of stdout"`
+	}
+
+	Header struct {
+		Value             string
+		clifford.Clifford `long:"header" desc:"Header..."`
+	}
 }
 
 // ParseArgs parses command-line flags using Clifford

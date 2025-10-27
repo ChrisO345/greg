@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
@@ -17,7 +18,12 @@ type model struct {
 	width    int
 	height   int
 	config   *Config
-	mode     string
+
+	mode       string
+	prompt     string
+	out        string
+	mainHeader string
+	helpText   string
 
 	windowStart int // start index of visible window
 }
@@ -110,8 +116,12 @@ func (m model) View() string {
 		Bold(true)
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(cfg.Colors.Help))
 
-	header := titleStyle.Render("greg") + helpStyle.Render(" - type to filter, ↑↓ to move, enter to select\n")
-	prompt := fmt.Sprintf("%s %s\n\n", promptStyle.Render("search>"), m.input)
+	// header := titleStyle.Render("greg") + helpStyle.Render(" - type to filter, ↑↓ to move, enter to select\n")
+	header := ""
+	if m.mainHeader != "" {
+		header = titleStyle.Render(m.mainHeader) + helpStyle.Render(m.helpText) + "\n"
+	}
+	prompt := fmt.Sprintf("%s %s\n\n", promptStyle.Render(m.prompt), m.input)
 
 	// Determine visible slice based on windowStart
 	start := m.windowStart
@@ -138,8 +148,8 @@ func (m model) View() string {
 	return lipgloss.NewStyle().Margin(1, 2).Render(content)
 }
 
-func RunTUIWithItems(cfg *Config, mode string, items []string, apps []AppEntry) error {
-	p := tea.NewProgram(initialModelWithItems(cfg, mode, items), tea.WithAltScreen())
+func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) error {
+	p := tea.NewProgram(mode, tea.WithAltScreen())
 	m, err := p.Run()
 	if err != nil {
 		return err
@@ -160,7 +170,16 @@ func RunTUIWithItems(cfg *Config, mode string, items []string, apps []AppEntry) 
 
 	switch mod.mode {
 	case "dmenu":
-		fmt.Println(selected)
+		if mod.out != "" {
+			if err := os.MkdirAll(filepath.Dir(mod.out), 0755); err != nil {
+				return fmt.Errorf("failed to create output directory: %w", err)
+			}
+			if err := os.WriteFile(mod.out, []byte(selected+"\n"), 0644); err != nil {
+				return fmt.Errorf("failed to write selection to file: %w", err)
+			}
+		} else {
+			fmt.Println(selected)
+		}
 	case "apps":
 		// Find the corresponding .desktop file
 		for _, app := range apps {
@@ -175,12 +194,31 @@ func RunTUIWithItems(cfg *Config, mode string, items []string, apps []AppEntry) 
 }
 
 // initialModelWithItems is like initialModel but accepts a preloaded list
-func initialModelWithItems(cfg *Config, mode string, items []string) model {
+func initialModelWithItems(cfg *Config, args *CLIArgs, items []string) model {
+	prompt := args.Prompt.Value
+	if prompt == "" {
+		prompt = "search>"
+	}
+
+	mainHeader := args.Header.Value
+	helpText := ""
+	if mainHeader == "" {
+		mainHeader = "greg"
+		helpText = " - type to filter, ↑↓ to move, enter to select"
+	}
+
 	return model{
-		allItems:    items,
-		filtered:    items,
-		config:      cfg,
-		mode:        mode,
+		allItems: items,
+		filtered: items,
+		config:   cfg,
+
+		mode:   args.Mode.Value,
+		prompt: prompt,
+		out:    args.Out.Value,
+
+		mainHeader: mainHeader,
+		helpText:   helpText,
+
 		windowStart: 0,
 	}
 }
