@@ -116,7 +116,6 @@ func (m model) View() string {
 		Bold(true)
 	helpStyle := lipgloss.NewStyle().Foreground(lipgloss.Color(cfg.Colors.Help))
 
-	// header := titleStyle.Render("greg") + helpStyle.Render(" - type to filter, ↑↓ to move, enter to select\n")
 	header := ""
 	if m.mainHeader != "" {
 		header = titleStyle.Render(m.mainHeader) + helpStyle.Render(m.helpText) + "\n"

@@ -50,7 +50,7 @@ func main() {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-		runMenu(mnu.Menu, cfg, args)
+		runMenu(mnu, cfg, args)
 		os.Exit(0)
 
 	// Use apps mode if no mode is specified

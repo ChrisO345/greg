@@ -15,16 +15,26 @@ type Menu struct {
 	Label     string `toml:"label"`
 	Exec      string `toml:"exec,omitempty"`
 	Generator string `toml:"generator,omitempty"`
+	Prompt    string `toml:"prompt,omitempty"`
+	Title     string `toml:"title,omitempty"`
 	Visible   bool   `toml:"visible,omitempty"`
 	Items     []Menu `toml:"items,omitempty"`
 }
 
 type MenuConfig struct {
-	Menu []Menu `toml:"menu"`
+	Menu   []Menu `toml:"menu"`
+	Prompt string `toml:"prompt,omitempty"`
+	Title  string `toml:"title,omitempty"`
 }
 
-func runMenu(menus []Menu, cfg *Config, args *CLIArgs) {
+func runMenu(menuConfig *MenuConfig, cfg *Config, args *CLIArgs) {
 	fmt.Printf("Running menu...\n")
+
+	menus := menuConfig.Menu
+	prompt := menuConfig.Prompt
+	title := menuConfig.Title
+
+	previousLabel := "greg"
 
 	for {
 		var items []string
@@ -33,6 +43,16 @@ func runMenu(menus []Menu, cfg *Config, args *CLIArgs) {
 		}
 
 		mode := initialModelWithItems(cfg, args, items)
+		if prompt != "" {
+			mode.prompt = prompt
+		}
+
+		if title != "" {
+			mode.mainHeader = title
+		} else {
+			mode.mainHeader = previousLabel
+		}
+
 		selected, err := RunTUIWithItems(cfg, mode, items, nil)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Error:", err)
@@ -52,6 +72,9 @@ func runMenu(menus []Menu, cfg *Config, args *CLIArgs) {
 				switch {
 				case len(m.Items) > 0:
 					menus = m.Items
+					prompt = m.Prompt
+					title = m.Title
+					previousLabel = m.Label
 
 				case m.Exec != "":
 					if err := executeCommand(m.Exec, m.Visible); err != nil {
@@ -67,7 +90,10 @@ func runMenu(menus []Menu, cfg *Config, args *CLIArgs) {
 						os.Exit(1)
 					}
 					m.Items = subitems
+					prompt = m.Prompt
+					title = m.Title
 					menus = m.Items
+					previousLabel = m.Label
 
 				default:
 					fmt.Printf("No action for: %s\n", m.Label)
