@@ -148,22 +148,22 @@ func (m model) View() string {
 	return lipgloss.NewStyle().Margin(1, 2).Render(content)
 }
 
-func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) error {
+func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) (string, error) {
 	p := tea.NewProgram(mode, tea.WithAltScreen())
 	m, err := p.Run()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	mod := m.(model)
 
 	if len(mod.filtered) == 0 {
-		return nil
+		return "", nil
 	}
 
 	if mod.cursor == -1 {
 		// No selection made
-		return nil
+		return "", nil
 	}
 
 	selected := mod.filtered[mod.cursor]
@@ -172,10 +172,10 @@ func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) e
 	case "dmenu":
 		if mod.out != "" {
 			if err := os.MkdirAll(filepath.Dir(mod.out), 0755); err != nil {
-				return fmt.Errorf("failed to create output directory: %w", err)
+				return "", fmt.Errorf("failed to create output directory: %w", err)
 			}
 			if err := os.WriteFile(mod.out, []byte(selected+"\n"), 0644); err != nil {
-				return fmt.Errorf("failed to write selection to file: %w", err)
+				return "", fmt.Errorf("failed to write selection to file: %w", err)
 			}
 		} else {
 			fmt.Println(selected)
@@ -184,13 +184,15 @@ func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) e
 		// Find the corresponding .desktop file
 		for _, app := range apps {
 			if app.Name == selected {
-				return launchDesktopFile(app.Path)
+				return "", launchDesktopFile(app.Path)
 			}
 		}
 		fmt.Fprintf(os.Stderr, "Error: could not find .desktop file for %s\n", selected)
+	case "menu":
+		// No action needed; menu handling is done elsewhere
+		return selected, nil
 	}
-
-	return nil
+	return "", nil
 }
 
 // initialModelWithItems is like initialModel but accepts a preloaded list

@@ -1,0 +1,29 @@
+[[menu]]
+label = "Apps"
+exec = "notify-send \"Apps\""
+
+[[menu]]
+label = "Style"
+
+[[menu.items]]
+label = "Theme"
+generator = "config/test.sh"
+
+[[menu.items]]
+label = "Font"
+exec = "echo \"Font\""
+
+[[menu]]
+label = "Power"
+
+[[menu.items]]
+label = "Lock"
+exec = "hyprlock"
+
+[[menu.items]]
+label = "Restart"
+exec = "notify-send \"Restart\""
+
+[[menu.items]]
+label = "Shutdown"
+exec = "notify-send \"Shutdown\""

@@ -3,10 +3,11 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"golang.org/x/term"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/term"
 )
 
 type AppEntry struct {
@@ -41,6 +42,17 @@ func main() {
 			items = append(items, scanner.Text())
 		}
 
+	case "menu":
+		cfg.MaxItems = getMaxItems(cfg)
+
+		mnu, err := loadMenu()
+		if err != nil {
+			fmt.Printf("Error: %v\n", err)
+			os.Exit(1)
+		}
+		runMenu(mnu.Menu, cfg, args)
+		os.Exit(0)
+
 	// Use apps mode if no mode is specified
 	case "apps":
 		fallthrough
@@ -73,7 +85,7 @@ func main() {
 	}
 
 	mode := initialModelWithItems(cfg, args, items)
-	if err := RunTUIWithItems(cfg, mode, items, appEntries); err != nil {
+	if _, err := RunTUIWithItems(cfg, mode, items, appEntries); err != nil {
 		fmt.Fprintln(os.Stderr, "Error:", err)
 		os.Exit(1)
 	}
