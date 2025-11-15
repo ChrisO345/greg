@@ -52,10 +52,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.cursor = 0
 				return m, nil
 			}
+			m.cursor = -1
 			return m, tea.Quit
 		}
 
 		if key == "ctrl+c" {
+			m.cursor = -1
 			return m, tea.Quit
 		}
 
@@ -315,6 +317,7 @@ func initialPersistentMenuModel(cfg *Config, _ *CLIArgs, menu *MenuConfig) model
 
 // / -------------------------------------------------------------------------
 func (m *model) updateMenuLabels() {
+	m.input = ""
 	m.labels = m.labels[:0]
 	for _, item := range m.current {
 		m.labels = append(m.labels, item.Label)
