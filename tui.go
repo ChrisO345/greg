@@ -11,13 +11,15 @@ import (
 )
 
 type model struct {
-	allItems []string
-	filtered []string
-	cursor   int
-	input    string
-	width    int
-	height   int
-	config   *Config
+	// generic TUI fields
+	allItems    []string
+	filtered    []string
+	cursor      int
+	input       string
+	width       int
+	height      int
+	windowStart int
+	config      *Config
 
 	mode       string
 	prompt     string
@@ -25,25 +27,88 @@ type model struct {
 	mainHeader string
 	helpText   string
 
-	windowStart int // start index of visible window
+	// persistent menu mode fields
+	isMenuMode bool
+	menuStack  [][]Menu
+	current    []Menu
+	labels     []string
 }
 
-func (m model) Init() tea.Cmd {
-	return tea.EnterAltScreen
-}
+func (m model) Init() tea.Cmd { return tea.EnterAltScreen }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
+	switch ev := msg.(type) {
+
 	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "esc":
-			// Set cursor to -1 to indicate no selection
-			m.cursor = -1
-			return m, tea.Quit
+		key := ev.String()
 
-		case "enter":
+		// ESC
+		if key == "esc" {
+			if m.isMenuMode && len(m.menuStack) > 0 {
+				// go up one menu level
+				m.current = m.menuStack[len(m.menuStack)-1]
+				m.menuStack = m.menuStack[:len(m.menuStack)-1]
+				m.updateMenuLabels()
+				m.cursor = 0
+				return m, nil
+			}
 			return m, tea.Quit
+		}
 
+		if key == "ctrl+c" {
+			return m, tea.Quit
+		}
+
+		// ENTER
+		if key == "enter" {
+			if m.isMenuMode {
+				if len(m.filtered) == 0 {
+					return m, nil
+				}
+				selected := m.filtered[m.cursor]
+
+				for _, item := range m.current {
+
+					if item.Label != selected {
+						continue
+					}
+
+					// SUBMENU
+					if len(item.Items) > 0 {
+						m.menuStack = append(m.menuStack, m.current)
+						m.current = item.Items
+						m.updateMenuLabels()
+						m.cursor = 0
+						return m, nil
+					}
+
+					// GENERATOR
+					if item.Generator != "" {
+						gen, err := expandGenerator(item.Generator)
+						if err == nil {
+							m.menuStack = append(m.menuStack, m.current)
+							m.current = gen
+							m.updateMenuLabels()
+							m.cursor = 0
+						}
+						return m, nil
+					}
+
+					// EXEC
+					if item.Exec != "" {
+						executeCommand(item.Exec, item.Visible)
+						return m, tea.Quit
+					}
+				}
+				return m, nil
+			}
+
+			// normal (dmenu/apps) mode
+			return m, tea.Quit
+		}
+
+		// Navigation
+		switch key {
 		case "up", "k":
 			if m.cursor > 0 {
 				m.cursor--
@@ -51,7 +116,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 					m.windowStart--
 				}
 			}
-
 		case "down", "j":
 			if m.cursor < len(m.filtered)-1 {
 				m.cursor++
@@ -68,33 +132,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 
 		default:
-			if len(msg.String()) == 1 {
-				m.input += msg.String()
+			if len(key) == 1 {
+				m.input += key
 				m.filterItems()
 				m.windowStart = 0
 			}
 		}
 
 	case tea.WindowSizeMsg:
-		m.width = msg.Width
-		m.height = msg.Height
+		m.width = ev.Width
+		m.height = ev.Height
 	}
+
 	return m, nil
 }
 
 func (m *model) filterItems() {
+	var src []string
+	if m.isMenuMode {
+		src = m.labels
+	} else {
+		src = m.allItems
+	}
+
 	if m.input == "" {
-		m.filtered = m.allItems
+		m.filtered = src
 		m.cursor = 0
 		m.windowStart = 0
 		return
 	}
+
 	var f []string
-	for _, item := range m.allItems {
+	for _, item := range src {
 		if strings.Contains(strings.ToLower(item), strings.ToLower(m.input)) {
 			f = append(f, item)
 		}
 	}
+
 	m.filtered = f
 	if m.cursor >= len(f) {
 		m.cursor = 0
@@ -120,17 +194,16 @@ func (m model) View() string {
 	if m.mainHeader != "" {
 		header = titleStyle.Render(m.mainHeader) + helpStyle.Render(m.helpText) + "\n"
 	}
+
 	prompt := fmt.Sprintf("%s %s\n\n", promptStyle.Render(m.prompt), m.input)
 
-	// Determine visible slice based on windowStart
 	start := m.windowStart
-	end := min(start+cfg.MaxItems, len(m.filtered))
-	visibleItems := m.filtered[start:end]
+	end := min(start+m.config.MaxItems, len(m.filtered))
+	visible := m.filtered[start:end]
 
 	list := ""
-	for i, item := range visibleItems {
-		globalIndex := start + i
-		if globalIndex == m.cursor {
+	for i, item := range visible {
+		if start+i == m.cursor {
 			list += selectedStyle.Render(" > "+item) + "\n"
 		} else {
 			list += itemStyle.Render("   "+item) + "\n"
@@ -139,8 +212,6 @@ func (m model) View() string {
 
 	if len(m.filtered) == 0 {
 		list += helpStyle.Render("   no matches found")
-	} else if len(m.filtered) > cfg.MaxItems {
-		list += helpStyle.Render(fmt.Sprintf("   ...and %d more", len(m.filtered)-cfg.MaxItems))
 	}
 
 	content := lipgloss.JoinVertical(lipgloss.Left, header, prompt, list)
@@ -156,12 +227,7 @@ func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) (
 
 	mod := m.(model)
 
-	if len(mod.filtered) == 0 {
-		return "", nil
-	}
-
-	if mod.cursor == -1 {
-		// No selection made
+	if len(mod.filtered) == 0 || mod.cursor == -1 {
 		return "", nil
 	}
 
@@ -174,52 +240,84 @@ func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) (
 				return "", fmt.Errorf("failed to create output directory: %w", err)
 			}
 			if err := os.WriteFile(mod.out, []byte(selected+"\n"), 0644); err != nil {
-				return "", fmt.Errorf("failed to write selection to file: %w", err)
+				return "", fmt.Errorf("failed to write selection: %w", err)
 			}
 		} else {
 			fmt.Println(selected)
 		}
+
 	case "apps":
-		// Find the corresponding .desktop file
 		for _, app := range apps {
 			if app.Name == selected {
 				return "", launchDesktopFile(app.Path)
 			}
 		}
-		fmt.Fprintf(os.Stderr, "Error: could not find .desktop file for %s\n", selected)
+
 	case "menu":
-		// No action needed; menu handling is done elsewhere
 		return selected, nil
 	}
+
 	return "", nil
 }
 
-// initialModelWithItems is like initialModel but accepts a preloaded list
 func initialModelWithItems(cfg *Config, args *CLIArgs, items []string) model {
 	prompt := args.Prompt.Value
 	if prompt == "" {
 		prompt = "search>"
 	}
 
-	mainHeader := args.Header.Value
+	header := args.Header.Value
 	helpText := ""
-	if mainHeader == "" {
-		mainHeader = "greg"
+	if header == "" {
+		header = "greg"
 		helpText = " - type to filter, ↑↓ to move, enter to select"
 	}
 
 	return model{
-		allItems: items,
-		filtered: items,
-		config:   cfg,
-
-		mode:   args.Mode.Value,
-		prompt: prompt,
-		out:    args.Out.Value,
-
-		mainHeader: mainHeader,
-		helpText:   helpText,
-
+		allItems:    items,
+		filtered:    items,
+		config:      cfg,
+		mode:        args.Mode.Value,
+		prompt:      prompt,
+		out:         args.Out.Value,
+		mainHeader:  header,
+		helpText:    helpText,
 		windowStart: 0,
 	}
+}
+
+func initialPersistentMenuModel(cfg *Config, _ *CLIArgs, menu *MenuConfig) model {
+	prompt := menu.Prompt
+	if prompt == "" {
+		prompt = "search>"
+	}
+
+	header := menu.Title
+	if header == "" {
+		header = "greg"
+	}
+
+	m := model{
+		config:     cfg,
+		mode:       "menu",
+		prompt:     prompt,
+		mainHeader: header,
+		helpText:   " - type to filter, ↑↓ to move, enter to select, esc to go back",
+
+		isMenuMode: true,
+		current:    menu.Menu,
+		menuStack:  [][]Menu{},
+	}
+
+	m.updateMenuLabels()
+	return m
+}
+
+// / -------------------------------------------------------------------------
+func (m *model) updateMenuLabels() {
+	m.labels = m.labels[:0]
+	for _, item := range m.current {
+		m.labels = append(m.labels, item.Label)
+	}
+	m.filtered = m.labels
 }
