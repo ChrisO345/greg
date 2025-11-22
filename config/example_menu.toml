@@ -12,9 +12,11 @@ generator = "config/test.sh"
 [[menu.items]]
 label = "Font"
 exec = "echo \"Font\""
+visible = true
 
 [[menu]]
 label = "Power"
+id = "power"
 
 [[menu.items]]
 label = "Lock"

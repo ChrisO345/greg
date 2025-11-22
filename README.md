@@ -56,6 +56,17 @@ ls /usr/bin | greg -m dmenu
 * Navigate with ↑/↓ keys.
 * Press **Enter** to select; the selected item is printed to stdout.
 
+### menu Mode (select from a predefined multi-level menu)
+
+```bash
+greg -m menu
+```
+
+* Navigate a predefined multi-level menu structure defined in `~/.config/greg/menu.toml`.
+* Type to filter menu items.
+* Press **Enter** to select an item.
+* Support an additional `--start/-s` flag to specify the starting menu id.
+
 ---
 
 ## Configuration

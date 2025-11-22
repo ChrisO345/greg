@@ -50,6 +50,17 @@ func main() {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
+
+		if args.Start.Value != "" {
+			subMenu := findMenuByID(mnu.Menu, args.Start.Value)
+			if subMenu == nil {
+				// Shouldn't be fatal
+				fmt.Fprintf(os.Stderr, "Warning: submenu with ID '%s' not found. Starting from root menu.\n", args.Start.Value)
+			} else {
+				mnu.Menu = subMenu.Items
+			}
+		}
+
 		runMenu(mnu, cfg, args)
 		os.Exit(0)
 

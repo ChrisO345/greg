@@ -20,12 +20,28 @@ type Menu struct {
 	Title     string `toml:"title,omitempty"`
 	Visible   bool   `toml:"visible,omitempty"`
 	Items     []Menu `toml:"items,omitempty"`
+
+	ID string `toml:"id,omitempty"` // Used for identification for starting submenu
 }
 
 type MenuConfig struct {
 	Menu   []Menu `toml:"menu"`
 	Prompt string `toml:"prompt,omitempty"`
 	Title  string `toml:"title,omitempty"`
+}
+
+func findMenuByID(menus []Menu, id string) *Menu {
+	for _, menu := range menus {
+		if menu.ID == id {
+			return &menu
+		}
+		if len(menu.Items) > 0 {
+			if found := findMenuByID(menu.Items, id); found != nil {
+				return found
+			}
+		}
+	}
+	return nil
 }
 
 func runMenu(menuConfig *MenuConfig, cfg *Config, args *CLIArgs) {

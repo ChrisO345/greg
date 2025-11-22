@@ -18,6 +18,11 @@ type CLIArgs struct {
 		clifford.Clifford `short:"m" long:"mode" desc:"Set the mode of operation (e.g., 'dmenu', 'apps')"`
 	}
 
+	Start struct {
+		Value             string
+		clifford.Clifford `short:"s" long:"start" desc:"Set the initial submenu to start from (menu mode only)"`
+	}
+
 	Prompt struct {
 		Value             string
 		clifford.Clifford `short:"p" long:"prompt" desc:"Set the prompt text in the TUI"`
