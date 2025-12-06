@@ -1,3 +1,0 @@
-build:
-  rm -f $GOBIN/greg
-  go build -o $GOBIN/greg;

@@ -80,7 +80,7 @@ func expandGenerator(cmdStr string) ([]Menu, error) {
 func executeCommand(cmdStr string, visible bool) error {
 	cmd := exec.Command("/bin/sh", "-c", cmdStr)
 
-	fmt.Println("Executing, state: ", visible)
+	fmt.Fprintln(os.Stderr, "Executing, state:", visible)
 
 	if !visible {
 		// run detached
@@ -125,6 +125,15 @@ func loadMenu() (*MenuConfig, error) {
 
 func RunPersistentMenuTUI(cfg *Config, args *CLIArgs, menu *MenuConfig) error {
 	m := initialPersistentMenuModel(cfg, args, menu)
-	_, err := tea.NewProgram(m, tea.WithAltScreen()).Run()
+	p := tea.NewProgram(m, tea.WithAltScreen())
+	_, err := p.Run()
+	if pendingExec != "" {
+		execErr := executeCommand(pendingExec, pendingVisible)
+		pendingExec = ""
+		if execErr != nil {
+			fmt.Fprintln(os.Stderr, "failed to execute command:", execErr)
+			return execErr
+		}
+	}
 	return err
 }

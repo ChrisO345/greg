@@ -10,6 +10,9 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+var pendingExec string
+var pendingVisible bool
+
 type model struct {
 	// generic TUI fields
 	allItems    []string
@@ -98,7 +101,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 					// EXEC
 					if item.Exec != "" {
-						executeCommand(item.Exec, item.Visible)
+						pendingExec = item.Exec
+						pendingVisible = item.Visible
 						return m, tea.Quit
 					}
 				}
