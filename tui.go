@@ -203,6 +203,91 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		}
 
+	case tea.MouseMsg:
+		// reset inactivity timer on any mouse event
+		if timeoutResetCh != nil {
+			select {
+			case timeoutResetCh <- struct{}{}:
+			default:
+			}
+		}
+
+		// approximate number of non-list lines: top margin (1), optional header (1 if present), prompt (2 lines)
+		topMargin := 3
+		headerLines := 0
+		if m.mainHeader != "" {
+			headerLines = 1
+		}
+		promptLines := 2
+
+		me := ev
+		// compute which visible row was clicked
+		y := me.Y - topMargin - headerLines - promptLines
+		if y >= 0 {
+			start := m.windowStart
+			end := min(start+m.config.MaxItems, len(m.filtered))
+			visibleCount := end - start
+			if y < visibleCount {
+				clicked := start + y
+				if clicked < 0 || clicked >= len(m.filtered) {
+					break
+				}
+				m.cursor = clicked
+				// act on left-button press
+				if me.Button == tea.MouseButtonLeft && me.Action == tea.MouseActionPress {
+					if m.isMenuMode {
+						if len(m.filtered) == 0 {
+							return m, nil
+						}
+						selected := m.filtered[m.cursor]
+						for _, item := range m.current {
+							if item.Label != selected {
+								continue
+							}
+
+							// SUBMENU
+							if len(item.Items) > 0 {
+								m.cursorStack = append(m.cursorStack, m.cursor)
+								m.windowStartStack = append(m.windowStartStack, m.windowStart)
+								m.menuStack = append(m.menuStack, m.current)
+								m.current = item.Items
+								m.updateMenuLabels()
+								m.cursor = 0
+								m.windowStart = 0
+								return m, nil
+							}
+
+							// GENERATOR
+							if item.Generator != "" {
+								gen, err := expandGenerator(item.Generator)
+								if err == nil {
+									m.cursorStack = append(m.cursorStack, m.cursor)
+									m.windowStartStack = append(m.windowStartStack, m.windowStart)
+									m.menuStack = append(m.menuStack, m.current)
+									m.current = gen
+									m.updateMenuLabels()
+									m.cursor = 0
+									m.windowStart = 0
+								}
+								return m, nil
+							}
+
+							// EXEC
+							if item.Exec != "" {
+								pendingExec = item.Exec
+								pendingVisible = item.Visible
+								return m, tea.Quit
+							}
+						}
+						return m, nil
+					}
+
+					// normal mode: left click selects
+					return m, tea.Quit
+				}
+			}
+		}
+
 	case tea.WindowSizeMsg:
 		m.width = ev.Width
 		m.height = ev.Height
@@ -288,7 +373,7 @@ func (m model) View() string {
 }
 
 func RunTUIWithItems(cfg *Config, mode model, items []string, apps []AppEntry) (string, error) {
-	p := tea.NewProgram(mode, tea.WithAltScreen())
+	p := tea.NewProgram(mode, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	// setup reset channel and start inactivity timer if requested
 	var done chan struct{}
 	if mode.timeout > 0 {

@@ -121,7 +121,7 @@ func loadMenu() (*MenuConfig, error) {
 
 func RunPersistentMenuTUI(cfg *Config, args *CLIArgs, menu *MenuConfig) error {
 	m := initialPersistentMenuModel(cfg, args, menu)
-	p := tea.NewProgram(m, tea.WithAltScreen())
+	p := tea.NewProgram(m, tea.WithAltScreen(), tea.WithMouseAllMotion())
 	// setup reset channel and start inactivity timer if requested
 	var done chan struct{}
 	if m.timeout > 0 {
