@@ -13,9 +13,12 @@ declare -A items=(
 # Output TOML
 echo ""
 for label in "${!items[@]}"; do
-    echo "[[items]]"
-    echo "label = \"$label\""
-    echo "exec = \"${items[$label]}\""
-    echo "visible = true"
-    echo ""
+  echo "[[items]]"
+  echo "label = \"$label\""
+  echo "exec = \"${items[$label]}\""
+  echo "visible = true"
+  if [[ "$label" == "$datevar" ]]; then
+    echo "active = true"
+  fi
+  echo ""
 done

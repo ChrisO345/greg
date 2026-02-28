@@ -357,10 +357,32 @@ func (m model) View() string {
 
 	var list strings.Builder
 	for i, item := range visible {
+		menuItem := m.findMenuItemByLabel(item)
+		active := false
+		if menuItem != nil {
+			active = menuItem.Active
+		}
+
 		if start+i == m.cursor {
-			list.WriteString(selectedStyle.Render(" > "+item) + "\n")
+			// selected style, preserve visibility and make italic if active
+			if active {
+				sel := lipgloss.NewStyle().
+					Foreground(lipgloss.Color("230")).
+					Background(lipgloss.Color(m.config.Colors.Selected)).
+					Bold(true).
+					Italic(true)
+				list.WriteString(sel.Render(" > "+item) + "\n")
+			} else {
+				list.WriteString(selectedStyle.Render(" > "+item) + "\n")
+			}
 		} else {
-			list.WriteString(itemStyle.Render("   "+item) + "\n")
+			// regular item, italicize if active
+			if active {
+				act := lipgloss.NewStyle().Foreground(lipgloss.Color(m.config.Colors.Item)).Italic(true)
+				list.WriteString(act.Render("   "+item) + "\n")
+			} else {
+				list.WriteString(itemStyle.Render("   "+item) + "\n")
+			}
 		}
 	}
 
@@ -505,6 +527,15 @@ func initialPersistentMenuModel(cfg *Config, args *CLIArgs, menu *MenuConfig) mo
 
 	m.updateMenuLabels()
 	return m
+}
+
+func (m *model) findMenuItemByLabel(label string) *Menu {
+	for i := range m.current {
+		if m.current[i].Label == label {
+			return &m.current[i]
+		}
+	}
+	return nil
 }
 
 func (m *model) updateMenuLabels() {

@@ -20,6 +20,7 @@ type Menu struct {
 	Prompt    string `toml:"prompt,omitempty"`
 	Title     string `toml:"title,omitempty"`
 	Visible   bool   `toml:"visible,omitempty"`
+	Active    bool   `toml:"active,omitempty"`
 	Items     []Menu `toml:"items,omitempty"`
 
 	ID string `toml:"id,omitempty"` // Used for identification for starting submenu

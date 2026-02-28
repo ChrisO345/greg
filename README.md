@@ -35,6 +35,8 @@ go build -o greg
 
 ## Usage
 
+A practical use of `greg` can be found at [chriso345/dotfiles](https://github.com/chriso345/dotfiles/tree/master/config/greg).
+
 ### apps Mode (launch GUI applications, default)
 
 ```bash
