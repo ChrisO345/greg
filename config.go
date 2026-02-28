@@ -30,13 +30,23 @@ type Config struct {
 }
 
 // LoadConfig loads configuration from $XDG_CONFIG_HOME/greg/config.toml
+// If customPath is provided, it loads the config from that path instead.
 // It can recursively load up to 5 config files through "file" references.
-func LoadConfig() (*Config, error) {
+func LoadConfig(customPath string) (*Config, error) {
 	base := defaultConfig()
 
-	path, err := resolveBaseConfigPath()
-	if err != nil {
-		return nil, err
+	var path string
+	var err error
+	if customPath != "" {
+		path, err = resolvePath(customPath)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		path, err = resolveBaseConfigPath()
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	fmt.Printf("[DEBUG] Loading base config from %s\n", path)

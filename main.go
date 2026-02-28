@@ -41,7 +41,7 @@ func main() {
 	if modeName == "menu" && args.Menu.NoConfig.Value {
 		cfg = defaultConfig()
 	} else {
-		cfg, err = LoadConfig()
+		cfg, err = LoadConfig(args.ConfigFile.Value)
 		if err != nil {
 			fmt.Fprintln(os.Stderr, "Warning: using default config -", err)
 			cfg = defaultConfig()
@@ -94,7 +94,7 @@ func main() {
 	case "menu":
 		cfg.MaxItems = getMaxItems(cfg)
 
-		mnu, err := loadMenu()
+		mnu, err := loadMenu(args.Menu.MenuFile.Value)
 		if err != nil {
 			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)

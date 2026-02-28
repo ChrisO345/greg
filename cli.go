@@ -13,6 +13,11 @@ type CLIArgs struct {
 	clifford.Help
 	clifford.Version `version:"0.1.0"`
 
+	ConfigFile struct {
+		Value             string
+		clifford.Clifford `short:"c" long:"config" desc:"Path to config file"`
+	}
+
 	// Subcommands
 	Menu struct {
 		clifford.Subcommand `name:"menu"`
@@ -34,6 +39,10 @@ type CLIArgs struct {
 		Header struct {
 			Value             string
 			clifford.Clifford `long:"header" desc:"Header text"`
+		}
+		MenuFile struct {
+			Value             string
+			clifford.Clifford `long:"menu-file" desc:"Path to menu file"`
 		}
 		NoConfig struct {
 			Value             bool

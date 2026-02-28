@@ -94,19 +94,27 @@ func executeCommand(cmdStr string, visible bool) error {
 	return cmd.Run()
 }
 
-func loadMenu() (*MenuConfig, error) {
+func loadMenu(customPath string) (*MenuConfig, error) {
 	config := &MenuConfig{}
 
-	xdgHome := os.Getenv("XDG_CONFIG_HOME")
-	if xdgHome == "" {
-		home, err := os.UserHomeDir()
+	var path string
+	if customPath != "" {
+		p, err := resolvePath(customPath)
 		if err != nil {
-			return nil, fmt.Errorf("cannot determine home dir: %w", err)
+			return nil, fmt.Errorf("cannot resolve menu file path: %w", err)
 		}
-		xdgHome = filepath.Join(home, ".config")
+		path = p
+	} else {
+		xdgHome := os.Getenv("XDG_CONFIG_HOME")
+		if xdgHome == "" {
+			home, err := os.UserHomeDir()
+			if err != nil {
+				return nil, fmt.Errorf("cannot determine home dir: %w", err)
+			}
+			xdgHome = filepath.Join(home, ".config")
+		}
+		path = filepath.Join(xdgHome, "greg", "menu.toml")
 	}
-
-	path := filepath.Join(xdgHome, "greg", "menu.toml")
 
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		return nil, fmt.Errorf("menu file not found: %s", path)
